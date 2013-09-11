@@ -71,7 +71,11 @@ sub remote_transfer {
     #my @args = ($FLAGS, $GLOBAL_SSH_TIMEOUT_OPTIONS_STRING, $src_path, $dest_path);
     my @args = ($FLAGS, $src_path, $dest_path);
     $self->Shotmap::Notify::notifyAboutScp("rsync @args");
-    my $results = IPC::System::Simple::capture("rsync @args");
+    #This is to ensure that the folder is created on the rremote host
+    my @dest_flds = split(":", $dest_path);
+    my $results = IPC::System::Simple::capture("ssh $dest_flds[0] mkdir -p $dest_flds[1]");
+    (0 == $EXITVAL) or die("Error creating $dest_path: $results");
+    $results = IPC::System::Simple::capture("rsync @args");
     (0 == $EXITVAL) or die("Error transferring $src_path to $dest_path using $path_type: $results");
     return $results;
 }
