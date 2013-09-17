@@ -73,8 +73,11 @@ sub remote_transfer {
     $self->Shotmap::Notify::notifyAboutScp("rsync @args");
     #This is to ensure that the folder is created on the rremote host
     my @dest_flds = split(":", $dest_path);
-    my $results = IPC::System::Simple::capture("ssh $dest_flds[0] mkdir -p $dest_flds[1]");
-    (0 == $EXITVAL) or die("Error creating $dest_path: $results");
+    my $results;
+    if (@dest_flds > 1){
+        $results = IPC::System::Simple::capture("ssh $dest_flds[0] mkdir -p $dest_flds[1]");
+        (0 == $EXITVAL) or die("Error creating $dest_path: $results");
+    }
     $results = IPC::System::Simple::capture("rsync @args");
     (0 == $EXITVAL) or die("Error transferring $src_path to $dest_path using $path_type: $results");
     return $results;
@@ -170,7 +173,7 @@ sub exec_remote_cmd($$) {
 }
 
 
-#currently uses @suffix with basename to successfully parse off .fa. may need to change
+#currentrently uses @suffix with basename to successfully parse off .fa. may need to change
 sub get_partitioned_samples{
     my ($self, $path) = @_;
     my %samples = ();        
@@ -782,9 +785,12 @@ sub build_search_db{
     #get the paths associated with each family
     my $family_path_hashref = _build_family_ref_path_hash( $ref_ffdb, $type );
     #constrain analysis to a set of families of interest
-    my @families   = sort( @{ $self->family_subset() });
+    my @families;
+    if (defined($self->family_subset())){
+         @families   = sort( @{ $self->family_subset() });
+    }
     if( !@families ){ #is there a subset list? No? then process EVERY family
-	@families = keys( %{ $family_path_hashref->{$type} } );
+        @families = keys( %{ $family_path_hashref->{$type} } );
     }
     my $n_fams = @families;
     my $count      = 0;
@@ -1034,7 +1040,7 @@ sub _get_family_path_from_dir{
 		}
 	    }
 	}
-	elsif( $path =~ m/seqs_all$/ ){ #then this dir contains seqs that we want to process
+	elsif( $path =~ m/seqs/ ){ #then this dir contains seqs that we want to process
 	    if( $type eq "blast" ){ #find the seqs and build the db
 		print "Grabbing family paths from $path\n";
 		opendir( SUBDIR, $path ) || die "Can't opendir subdir $path: $!\n";
@@ -1279,7 +1285,7 @@ sub translate_reads_remote($$$$$) {
 	    # Split the ORFs!
 	    my $local_unsplit_dir  =        $self->ffdb() . "/projects/" . $self->db_name . "/" . $self->project_id() . "/$sample_id/unsplit_orfs"; # This is where the files will be tranferred BACK to. Should NOT end in a slash!
 	    my $remote_unsplit_dir = $self->remote_ffdb() . "/projects/" . $self->db_name . "/" .  $self->project_id() . "/$sample_id/unsplit_orfs"; # Should NOT end in a slash!
-	    my $remote_cmd = "\'" . "perl ${transeqPerlRemote} " . " -i $remote_raw_dir" . " -o $remote_output_dir" . " -w $waitTimeInSeconds" . " -l $logsdir" . " -s $remote_script_dir" . " -u $remote_unsplit_dir" . " -f $filter_length" . "\'";
+	    my $remote_cmd = "\'" . "source ~/.bash_profile;perl ${transeqPerlRemote} " . " -i $remote_raw_dir" . " -o $remote_output_dir" . " -w $waitTimeInSeconds" . " -l $logsdir" . " -s $remote_script_dir" . " -u $remote_unsplit_dir" . " -f $filter_length" . "\'";
 	    my $response = $self->Shotmap::Run::execute_ssh_cmd($connection, $remote_cmd);
 	    $self->Shotmap::Notify::notify("Translation result text, if any was: \"$response\"");
 	    $self->Shotmap::Notify::notify("Translation complete, Transferring split and raw translated orfs\n");
