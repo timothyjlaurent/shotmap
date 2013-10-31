@@ -119,7 +119,7 @@ sub execute_ssh_cmd{
     my $sshOptions = "ssh $GLOBAL_SSH_TIMEOUT_OPTIONS_STRING $verboseFlag $connection";
     $self->Shotmap::Notify::notifyAboutRemoteCmd($sshOptions);
     $self->Shotmap::Notify::notifyAboutRemoteCmd($remote_cmd);
-    my $results = IPC::System::Simple::capture("$sshOptions \'source .bash_profile;  $remote_cmd\'");
+    my $results = IPC::System::Simple::capture("$sshOptions  $remote_cmd ");
     (0 == $EXITVAL) or die( "Error running this ssh command: $sshOptions $remote_cmd: $results" );
     return $results; ## <-- this gets used! Don't remove it.
 }
